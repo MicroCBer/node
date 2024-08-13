@@ -235,6 +235,41 @@ void DatabaseSync::Exec(const FunctionCallbackInfo<Value>& args) {
   CHECK_ERROR_OR_THROW(env->isolate(), db->connection_, r, SQLITE_OK, void());
 }
 
+void DatabaseSync::CreateFunction(const FunctionCallbackInfo<Value>& args) {
+  DatabaseSync* db;
+  ASSIGN_OR_RETURN_UNWRAP(&db, args.This());
+  Environment* env = Environment::GetCurrent(args);
+  THROW_AND_RETURN_ON_BAD_STATE(env, !db->IsOpen(), "database is not open");
+
+  if (!args[0]->IsString()) {
+    node::THROW_ERR_INVALID_ARG_TYPE(env->isolate(),
+                                     "The \"name\" argument must be a string.");
+    return;
+  }
+  if (!args[1]->IsFunction()) {
+    node::THROW_ERR_INVALID_ARG_TYPE(env->isolate(),
+                                     "The \"callback\" argument must be a function.");
+    return;
+  }
+
+  String::Utf8Value functionName(args[0]->ToString());
+  auto callback = args[1].As<Function>();
+  sqlite3_create_function(
+        db->connection_,
+        *functionName,
+        -1, // arbitrary number of args
+        SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+        +[] (sqlite3_context *context, int argc, sqlite3_value **argv) {
+            auto cb = sqlite3_user_data(context); 
+        },
+        new Local<Function>(callback),
+        NULL,
+        NULL);
+  
+  int r = sqlite3_exec(db->connection_, *sql, nullptr, nullptr, nullptr);
+  CHECK_ERROR_OR_THROW(env->isolate(), db->connection_, r, SQLITE_OK, void());
+}
+
 StatementSync::StatementSync(Environment* env,
                              Local<Object> object,
                              DatabaseSync* db,
