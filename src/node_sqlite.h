@@ -28,6 +28,7 @@ class DatabaseSync : public BaseObject {
   static void Close(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void Prepare(const v8::FunctionCallbackInfo<v8::Value>& args);
   static void Exec(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void CreateFunction(const v8::FunctionCallbackInfo<v8::Value>& args);
   void FinalizeStatements();
   void UntrackStatement(StatementSync* statement);
   bool IsOpen();
